@@ -99,12 +99,21 @@ end
 
 # TODO figure out how leaderboard could flexibly fit in to this
 function gradescope_output(tests::Vector{Test})
-    (score = sum(get(t.info, :score, 0) for t in tests),
-     execution_time = sum(get(t.info, :execution_time, 0) for t in tests),
-     visibility = "visible",
-     extra_data = (language = "julia",),
-     tests = getproperty.(tests, :info))
+    Dict(:score => sum(get(t.info, :score, 0) for t in tests),
+         :execution_time => sum(get(t.info, :execution_time, 0) for t in tests),
+         :visibility => "visible",
+         :extra_data => (language = "julia",),
+         :tests => getproperty.(tests, :info))
 end
+
+function gradescope_output(tests::Vector)
+    Dict(:score => sum(get(t, :score, 0) for t in tests),
+         :execution_time => sum(get(t, :execution_time, 0) for t in tests),
+         :visibility => "visible",
+         :extra_data => (language = "julia",),
+         :tests => tests)
+end
+
 
 
 
