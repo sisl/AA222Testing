@@ -30,124 +30,150 @@ json_out = json(gradescope_output(tests), 4)
 """
 module AA222Testing
 
+# GLOBALS
+
+# These have non-conventional type names so that their string output match the gradescope expected strings
+@enum VisibilityMode hidden after_due_date after_published visible
+
+const LEADERBOARD = []
+const STDOUT_VIS = Ref(hidden)
+
+stdout_visibility() = STDOUT_VIS.x
+
+set_stdout_visibility(mode::VisibilityMode) = (STDOUT_VIS[] = mode)
+
+######### Leaderboard handling #########
+# leaderboard entries are named tuples
+add_leaderboard!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
 
 
-struct Error
-    e
-    backtrace
-end
-Base.show(io::IO, e::Error) = print(io, typeof(e.e))
+"""
+    metadata()
+    metadata(path)
 
-Base.:*(::Error, n::Number) = zero(n)
-Base.:*(n::Number, ::Error) = zero(n)
-
-# @enum Result Pass Fail
-
-# Base.:*(r::Result, n::Number) = r == Pass ? n : zero(n)
-# Base.:*(n::Number, r::Result) = r == Pass ? n : zero(n)
-
-# Performs a test in a try-catch and returns a result. Used in `runtest!` to fill a Test.result
-function _test(ex::Expr)
-    if ex.head != :call
-        throw(ErrorException("Can only handle boolean expressions. Got incompatible expression:\n\t $ex"))
-    end
-
-    try
-        return @eval Main $ex
-    catch e
-        return Error(e, catch_backtrace())
-    end
-end
+Retrieves the submission metadata from a json file as a `Dict`. See `https://gradescope-autograders.readthedocs.io/en/latest/submission_metadata/` for the metadata format.
+"""
+metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
 
 
-######## A single Test object ########
 
+"""
+    Test(f!; kwargs...)
+
+A Test object. when the test is run with `runtests!`, evaluates the function `f!`, which must be a
+single argument function. The input x to `f!(x)` in `runtest!(test)` is the dictionary `test.info`
+Any keyword arguments given to the constructor also go into the dictionary, which is eventually saved in the `tests` array of the output.
+"""
 mutable struct Test
-    ex::Expr
-    result
-    weight::Float64
+    f::Function
+    result::Union{Bool, Nothing}
     info::Dict
 
-    Test(ex; weight = 1, kwargs...) = new(ex, nothing, weight, Dict(kwargs...))
+    function Test(f; weight = 1, kwargs...)
+        info = Dict{Symbol, Any}(kwargs...)
+        info[:max_score] = weight
+
+        new(f, nothing, info)
+    end
 end
 
 function runtest!(test::Test)
-    res = _test(test.ex)
-    test.result = res
+    info = test.info
 
-    test.info[:score] = res * test.weight
-    extra_data = get!(test.info, :extra_data, Dict())
-    extra_data[:evalulated_expression] = string(test.ex)
+    # reset if previously run
+    info[:output] = nothing
+    info[:score] = nothing
 
+    if hasmethod(test.f, (Dict,))
+        input = tuple(info)
+    elseif hasmethod(test.f, ())
+        input = tuple()
+    else
+        # Intentionally raise an error *outside* the try-catch so that the autograder itself fails.
+        # This sort of error has nothing to do with the submission and is the fault of the test writer.
+        error("test.f does not have a method matching f() or f(::Dict)")
+    end
+
+    try
+        test.result = test.f(input...)
+        if isnothing(info[:score])
+            info[:score] = test.result * get(info, :max_score, 1)
+        end
+
+    catch e
+        test.result = false # auto-fail
+        # write error message to output
+        info[:output] = sprint(showerror, e, catch_backtrace())
+        info[:score] = 0
+
+        # In case we're local, we want to see the error output. If we're running on gradescope,
+        # printouts are private anyhow so it makes no difference
+        if stdout_visibility() == visible
+            showerror(stdout, e, catch_backtrace())
+            println()
+        end
+    end
     return test
 end
 
 
+runtests!(tests::Vector{Test}) = runtest!.(tests)
 
 
 
-######### These deal with a Vector of Tests (i.e. a testset) #########
 
-function runtests(tests::Vector{Test})
+######### These deal with the formatted output #########
+
+
+function gradescope_output(tests::Vector{Test}; leaderboard = false, kwargs...)
     for t in tests
-        Δt = @elapsed runtest!(t)
-        t.info[:execution_time] = Δt
+        if isnothing(t.result)
+            runtest!(t)
+        end
     end
 
-    return tests
+    infos = getproperty.(tests, :info)
+
+    gradescope_output(infos; leaderboard = leaderboard, kwargs...)
 end
 
-# TODO figure out how leaderboard could flexibly fit in to this
-function gradescope_output(tests::Vector{Test})
-    Dict(:score => sum(get(t.info, :score, 0) for t in tests),
-         :execution_time => sum(get(t.info, :execution_time, 0) for t in tests),
-         :visibility => "visible",
-         :extra_data => (language = "julia",),
-         :tests => getproperty.(tests, :info))
+function gradescope_output(tests::Vector; leaderboard = false, kwargs...)
+    output = Dict(kwargs...)
+    output[:tests] = tests
+    output[:score] = sum(t[:score] for t in tests)
+
+    extra_data = get!(output, :extra_data, Dict())
+    extra_data[:language] = "julia"
+    output[:stdout_visibility] = stdout_visibility()
+
+    if leaderboard
+        output[:leaderboard] = copy(LEADERBOARD)
+    end
+
+    return output
 end
 
-function gradescope_output(tests::Vector)
-    Dict(:score => sum(get(t, :score, 0) for t in tests),
-         :execution_time => sum(get(t, :execution_time, 0) for t in tests),
-         :visibility => "visible",
-         :extra_data => (language = "julia",),
-         :tests => tests)
-end
 
 
 
+############### LOCALTEST ###############
 
 """
-    localtest(tests, show_errors = false)
+    localtest(tests[; show_errors = true])
 
 For local evaluation of a series of tests. Prints out the results of each
 test and, if `show_errors = true`, also any stacktraces encountered"
 """
-function localtest(tests::Vector{Test}, show_errors = false)
-
-    runtests(tests)
-
-    got_error = false
+function localtest(tests::Vector{Test}; show_errors = true)
+    set_stdout_visibility(show_errors ? visible : hidden)
 
     for (i, t) in enumerate(tests)
-        r = t.result
-        if r isa Error
-            printstyled("Error in Test $i", bold = true, color=Base.error_color())
-            if show_errors
-                showerror(stdout, r.e, r.backtrace)
-                println()
-            else
-                printstyled("; ", r.e, bold = true, color=Base.error_color())
-                println()
-                got_error = true
-            end
-        elseif r isa Bool
-            r ? printstyled("Test $i Passed\n", bold = true, color=:green) :
+        runtest!(t)
+        if t.result
+            printstyled("Test $i Passed\n", bold = true, color=:green)
+        else
             printstyled("Test $i Failed\n", bold = true, color=Base.error_color())
         end
-    end
-    if got_error
-        @info "Error stacktraces supressed. Use argument `true` to see them."
     end
 end
 
