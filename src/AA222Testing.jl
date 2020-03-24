@@ -48,20 +48,20 @@ set_stdout_visibility(mode::VisibilityMode) = (STDOUT_VIS[] = mode)
 add_leaderboard!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
 
 
-"""
-    metadata()
-    metadata(path)
+# """
+#     metadata()
+#     metadata(path)
 
-Retrieves the submission metadata from a json file as a `Dict`. See `https://gradescope-autograders.readthedocs.io/en/latest/submission_metadata/` for the metadata format.
-"""
-metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
+# Retrieves the submission metadata from a json file as a `Dict`. See `https://gradescope-autograders.readthedocs.io/en/latest/submission_metadata/` for the metadata format.
+# """
+# metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
 
 
 
 """
     Test(f!; kwargs...)
 
-A Test object. when the test is run with `runtests!`, evaluates the function `f!`, which must be a
+A Test object. when the test is run with `runtest!`, evaluates the function `f!`, which must be a
 single argument function. The input x to `f!(x)` in `runtest!(test)` is the dictionary `test.info`
 Any keyword arguments given to the constructor also go into the dictionary, which is eventually saved in the `tests` array of the output.
 """
@@ -92,7 +92,7 @@ function runtest!(test::Test)
     else
         # Intentionally raise an error *outside* the try-catch so that the autograder itself fails.
         # This sort of error has nothing to do with the submission and is the fault of the test writer.
-        error("test.f does not have a method matching f() or f(::Dict)")
+        error("test.f does not have a method matching f() or f(::Dict). This is a test design problem, *not* a submission issue!")
     end
 
     try
