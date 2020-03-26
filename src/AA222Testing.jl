@@ -145,7 +145,7 @@ function gradescope_output(tests::Vector{Test}; leaderboard = false, kwargs...)
     gradescope_output(infos; leaderboard = leaderboard, kwargs...)
 end
 
-function gradescope_output(tests::Vector; leaderboard = false, kwargs...)
+function gradescope_output(tests::Vector{Dict}; leaderboard = false, kwargs...)
     output = Dict(kwargs...)
     output[:tests] = tests
     output[:score] = sum(t[:score] for t in tests)
@@ -161,7 +161,10 @@ function gradescope_output(tests::Vector; leaderboard = false, kwargs...)
     return output
 end
 
-
+function gradescope_output(filename::AbstractString, tests; leaderboard = false, kwargs...)
+    output = gradescope_output(tests; leaderboard=leaderboard, kwargs...)
+    write(filename, json(output, 4))
+end
 
 
 ############### LOCALTEST ###############
