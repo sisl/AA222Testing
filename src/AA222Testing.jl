@@ -31,6 +31,10 @@ json_out = json(gradescope_output(tests), 4)
 """
 module AA222Testing
 
+export LEADERBOARD
+export Test
+export set_stdout_visibility, add_leaderboard!, runtest!, runtests!, localtest, gradescope_output # metadata
+
 # GLOBALS
 
 # These have non-conventional type names so that their string output match the gradescope expected strings
