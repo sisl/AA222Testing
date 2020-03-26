@@ -65,11 +65,14 @@ metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
 
 
 """
-    Test(f!; kwargs...)
+    Test(f; kwargs...)
 
-A Test object. when the test is run with `runtest!`, evaluates the function `f!`, which must be a
-single argument function. The input x to `f!(x)` in `runtest!(test)` is the dictionary `test.info`
-Any keyword arguments given to the constructor also go into the dictionary, which is eventually saved in the `tests` array of the output.
+A Test object. when the test is run with `runtest!`, evaluates the function `f`.
+
+Keyword arguments passed to the constructor go into the `Dict` `test.info`, which is eventually saved in the `tests` array of the output.
+If `f` is a single argument function, the input `x` to `f(x)` is the dictionary `test.info`.
+This is so calculations performed during the test `f` can be used to calculate e.g. the test score or evaluation time.
+`f` may also be a no-argument function. In both cases, `f` must return a boolean indicating whether the test passed or not.
 """
 mutable struct Test
     f::Function
@@ -100,6 +103,8 @@ function runtest!(test::Test)
 
     try
         test.result = test.f()
+        # Check if the score was written into during test execution. If not it should
+        # be the test result*total
         if isnothing(info[:score])
             info[:score] = test.result * get(info, :max_score, 1)
         end
