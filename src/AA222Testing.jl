@@ -31,9 +31,11 @@ json_out = json(gradescope_output(tests), 4)
 """
 module AA222Testing
 
+using JSON
+
 export LEADERBOARD
 export Test
-export set_stdout_visibility, add_leaderboard!, runtest!, runtests!, localtest, gradescope_output # metadata
+export set_stdout_visibility, add_leaderboard!, runtest!, runtests!, localtest, gradescope_output, metadata
 
 # GLOBALS
 
@@ -52,13 +54,13 @@ set_stdout_visibility(mode::VisibilityMode) = (STDOUT_VIS[] = mode)
 add_leaderboard!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
 
 
-# """
-#     metadata()
-#     metadata(path)
+"""
+    metadata()
+    metadata(path)
 
-# Retrieves the submission metadata from a json file as a `Dict`. See `https://gradescope-autograders.readthedocs.io/en/latest/submission_metadata/` for the metadata format.
-# """
-# metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
+Retrieves the submission metadata from a json file as a `Dict`. See `https://gradescope-autograders.readthedocs.io/en/latest/submission_metadata/` for the metadata format.
+"""
+metadata(path = "/autograder/submission_metadata.json") = JSON.parsefile(path)
 
 
 
