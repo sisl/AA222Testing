@@ -74,6 +74,13 @@ mutable struct Test
         info = Dict{Symbol, Any}(kwargs...)
         info[:max_score] = weight
 
+        if hasmethod(f, (Dict,))
+            # turn f into a closure over the info dict
+            f = () -> f(info)
+        elseif !hasmethod(f, ())
+            error("test.f does not have a method matching f() or f(::Dict).")
+        end
+
         new(f, nothing, info)
     end
 end
@@ -85,30 +92,19 @@ function runtest!(test::Test)
     info[:output] = nothing
     info[:score] = nothing
 
-    if hasmethod(test.f, (Dict,))
-        input = tuple(info)
-    elseif hasmethod(test.f, ())
-        input = tuple()
-    else
-        # Intentionally raise an error *outside* the try-catch so that the autograder itself fails.
-        # This sort of error has nothing to do with the submission and is the fault of the test writer.
-        error("test.f does not have a method matching f() or f(::Dict). This is a test design problem, *not* a submission issue!")
-    end
-
     try
-        test.result = test.f(input...)
+        test.result = test.f()
         if isnothing(info[:score])
             info[:score] = test.result * get(info, :max_score, 1)
         end
 
     catch e
         test.result = false # auto-fail
-        # write error message to output
+        # write error message to output TODO: could the stacktrace reveal any info?
         info[:output] = sprint(showerror, e, catch_backtrace())
         info[:score] = 0
 
-        # In case we're local, we want to see the error output. If we're running on gradescope,
-        # printouts are private anyhow so it makes no difference
+        # Print the error to the console if the visibility mode is set to allow it
         if stdout_visibility() == visible
             showerror(stdout, e, catch_backtrace())
             println()
@@ -166,6 +162,7 @@ For local evaluation of a series of tests. Prints out the results of each
 test and, if `show_errors = true`, also any stacktraces encountered"
 """
 function localtest(tests::Vector{Test}; show_errors = true)
+    vis = stdout_visibility()
     set_stdout_visibility(show_errors ? visible : hidden)
 
     for (i, t) in enumerate(tests)
@@ -176,6 +173,9 @@ function localtest(tests::Vector{Test}; show_errors = true)
             printstyled("Test $i Failed\n", bold = true, color=Base.error_color())
         end
     end
+
+    # Reset the visibility mode in case we changed it
+    set_stdout_visibility(vis)
 end
 
 localtest(tests...; show_errors = false) = locatests(collect(tests), show_errors)
