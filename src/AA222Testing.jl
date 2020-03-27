@@ -35,7 +35,7 @@ using JSON
 
 export LEADERBOARD
 export Test
-export set_stdout_visibility, add_leaderboard!, runtest!, runtests!, localtest, gradescope_output, metadata
+export set_stdout_visibility, set_leaderboard_value!, runtest!, runtests!, localtest, gradescope_output, metadata
 
 # GLOBALS
 
@@ -51,7 +51,7 @@ set_stdout_visibility(mode::VisibilityMode) = (STDOUT_VIS[] = mode)
 
 ######### Leaderboard handling #########
 # leaderboard entries are named tuples
-add_leaderboard!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
+set_leaderboard_value!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
 
 
 """
