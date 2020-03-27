@@ -81,7 +81,7 @@ mutable struct Test
 
     function Test(g; weight = 1, kwargs...)
         info = Dict{Symbol, Any}(kwargs...)
-        info[:max_score] = weight
+        info[:max_score] = get(info, :max_score, weight)
 
         if hasmethod(g, (Dict,))
             # turn f into a closure over the info dict
