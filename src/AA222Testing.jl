@@ -79,14 +79,14 @@ mutable struct Test
     result::Union{Bool, Nothing}
     info::Dict
 
-    function Test(f; weight = 1, kwargs...)
+    function Test(g; weight = 1, kwargs...)
         info = Dict{Symbol, Any}(kwargs...)
         info[:max_score] = weight
 
-        if hasmethod(f, (Dict,))
+        if hasmethod(g, (Dict,))
             # turn f into a closure over the info dict
-            f = () -> f(info)
-        elseif !hasmethod(f, ())
+            f = () -> g(info)
+        elseif !hasmethod(g, ())
             error("test.f does not have a method matching f() or f(::Dict).")
         end
 
@@ -145,7 +145,7 @@ function gradescope_output(tests::Vector{Test}; leaderboard = false, kwargs...)
     gradescope_output(infos; leaderboard = leaderboard, kwargs...)
 end
 
-function gradescope_output(tests::Vector{Dict}; leaderboard = false, kwargs...)
+function gradescope_output(tests::Vector{<:Dict}; leaderboard = false, kwargs...)
     output = Dict(kwargs...)
     output[:tests] = tests
     output[:score] = sum(t[:score] for t in tests)
