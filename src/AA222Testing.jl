@@ -86,7 +86,9 @@ mutable struct Test
         if hasmethod(g, (Dict,))
             # turn f into a closure over the info dict
             f = () -> g(info)
-        elseif !hasmethod(g, ())
+        elseif hasmethod(g, ())
+            f = g
+        else
             error("test.f does not have a method matching f() or f(::Dict).")
         end
 
@@ -98,7 +100,9 @@ function runtest!(test::Test)
     info = test.info
 
     # reset if previously run
-    info[:output] = nothing
+    if haskey(info, :output)
+        pop!(info, :output)
+    end
     info[:score] = nothing
 
     try
