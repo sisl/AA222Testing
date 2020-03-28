@@ -8,9 +8,6 @@ Any keyword arguments to the constructor go into an `:info` dict.
 
 - `gradescope_output`: returns a `Dict` in the format gradescope requires. If a filename is given, writes that dict to the file as json.
 
-Note:
-- test expressions are evaluated in `Main` with `@eval` so are not meant to test performance in any way.
-
 ## Example Usage
 ```julia
 using AA222Testing
