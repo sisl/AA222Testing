@@ -12,6 +12,8 @@ Any keyword arguments to the constructor go into an `:info` dict.
 ```julia
 using AA222Testing
 
+f(a, b) = a + b
+
 test_f(a, b) = () -> (f(a, b) == (a + b))
 
 tests = [Test(test_f(1, 1), weight = 50, name = "Evaluate 1+1=2"),
