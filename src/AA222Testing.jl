@@ -1,34 +1,4 @@
 
-"""
-    AA222Testing
-
-Testing framework for AA222 Spring 2020. Does not export any names but implements the following:
-
-- `Test`: type for handling tests. First argument must be a function that takes one or no arguments.
-Accepts keyword argument `weight`. Other keyword arguments go into an `:info` dict.
-See `Test` implementation for more details.
-
-- `localtest`: prints the results of a test set so students can see how they're doing.
-
-- `gradescope_output`: returns a NamedTuple in the format gradescope requires.
-Run `json` on the result to get a json string save to a file.
-
-
-## Example Usage
-```
-using AA222Testing: Test, runtests, gradescope_output
-using JSON
-
-test_add(a, b, c) = a + b == c
-
-tests = [Test(() -> test_add(1, 1, 2), weight = 50, name = "Evaluate 1+1=2", number = "1.1")
-         Test(() -> test_add(7.2, 9.0, 16.2), weight = 50, name = "Evaluate 7.2 + 9.0 = 16.2", number = "1.2")
-        ]
-
-json_out = json(gradescope_output(tests), 4)
-
-```
-"""
 module AA222Testing
 
 using JSON
