@@ -21,7 +21,15 @@ set_stdout_visibility(mode::VisibilityMode) = (STDOUT_VIS[] = mode)
 
 ######### Leaderboard handling #########
 # leaderboard entries are named tuples
-set_leaderboard_value!(name, value, order = "desc") = push!(LEADERBOARD, (name = name, value = value, order = order))
+set_leaderboard_value!(name, value, order = "desc") = push!(LEADERBOARD, LeaderboardEntry(name, value, order))
+
+mutable struct LeaderboardEntry
+    name::String
+    value::Union{Nothing, <:Number, String}
+    order::String
+end
+LeaderboardEntry(name, value) = LeaderboardEntry(name, value, "desc")
+
 
 
 """
