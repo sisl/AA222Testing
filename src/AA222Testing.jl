@@ -128,7 +128,7 @@ function gradescope_output(tests::Vector{Test}; leaderboard = false, kwargs...)
 end
 
 function gradescope_output(tests::Vector{<:Dict}; leaderboard = false, kwargs...)
-    output = Dict(kwargs...)
+    output = Dict{Symbol, Any}(kwargs...)
     output[:tests] = tests
     output[:score] = sum(t[:score] for t in tests)
 
